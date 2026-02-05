@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
+LAST_EXIT_CODE=0
 declare -a HISTORY_ARRAY=()
 
 prompt() {
-    echo "wsh$ "
+    if [[ $LAST_EXIT_CODE -eq 0 ]]; then
+        echo -e "\e[32mwhy\e[0m\e[34mSh\e[0m \e[36m❯\e[0m "
+    else
+        echo -e "\e[32mwhy\e[0m\e[34mSh\e[0m \e[31m❯\e[0m "
+    fi
 }
 
 add_to_history() {
@@ -91,6 +96,7 @@ main_loop() {
 
         # Skip empty input
         if [[ -z "$input" ]]; then
+            LAST_EXIT_CODE=0
             continue
         fi
 
@@ -102,9 +108,11 @@ main_loop() {
 
         if is_builtin "$cmd"; then
             execute_builtin "${ARGS[@]}"
+            LAST_EXIT_CODE=$?
         else
             # Execute
             eval "$input"
+            LAST_EXIT_CODE=$?
         fi
     done
 }
