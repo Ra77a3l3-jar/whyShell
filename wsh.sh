@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 
+declare -a HISTORY_ARRAY=()
+
 prompt() {
-  echo "wsh$ "
+    echo "wsh$ "
+}
+
+add_to_history() {
+    local cmd="$1"
+    if [[ -n "$cmd" ]]; then
+        HISTORY_ARRAY+=("$cmd")
+        history -s "$cmd"
+    fi
 }
 
 builtin_cd() {
@@ -27,9 +37,17 @@ Any standard command as well!
 EOF
 }
 
+builtin_history() {
+    local i=1
+    for cmd in "${HISTORY_ARRAY[@]}"; do
+        echo "$i" "$cmd"
+        ((i++))
+    done
+}
+
 is_builtin() {
     case "$1" in
-        cd|exit|help)
+        cd|exit|help|history)
             return 0
             ;;
         *)
@@ -52,6 +70,9 @@ execute_builtin() {
         help)
             builtin_help
             ;;
+        history)
+            builtin_history
+            ;;
     esac
 }
 
@@ -72,6 +93,8 @@ main_loop() {
         if [[ -z "$input" ]]; then
             continue
         fi
+
+        add_to_history "$input"
 
         # Parse input
         read -ra ARGS <<< "$input"
