@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
 
+SHELL_NAME="whs"
+MAX_HISTORY=1000
+HISTORY_FILE="${HOME}/.config/${SHELL_NAME}/history"
+
 LAST_EXIT_CODE=0
+
 declare -a HISTORY_ARRAY=()
+declare -a SHELL_VARS=()
+
+# Setup shell after startup
+init_shell() {
+    local history_dir
+    history_dir=$(dirname "$HISTORY_FILE")
+    mkdir -p "$history_dir"
+
+    # Load histury
+    if [[ -f "$HISTORY_FILE" ]]; then
+        mapfile -t HISTORY_ARRAY < "$HISTORY_FILE"
+        history -r "$HISTORY_FILE"
+    fi
+}
 
 prompt() {
     if [[ $LAST_EXIT_CODE -eq 0 ]]; then
@@ -31,12 +50,12 @@ builtin_cd() {
 
 builtin_help() {
     cat << EOF
-    - A Bash Shell in Bash
+- A Bash Shell in Bash
 
-    cd [directory]  Change to directory
-    pwd             Print directory
-    exit [code]     Exit shell
-    help            Show instructions
+cd [dir]  Change to directory
+pwd             Print directory
+exit [code]     Exit shell
+help            Show instructions
 
 Any standard command as well!
 EOF
@@ -50,15 +69,28 @@ builtin_history() {
     done
 }
 
+builtin_set() {
+    if [[ $# -eq 0 ]]; then
+        for var in "${SHELL_VARS[@]}"; do
+            echo "$var=${SHELL_VARS[$var]}"
+        done | sort
+    elif [[ $# -eq 2 ]]; then
+        SHELL_VARS["$1"]="$2"
+    else
+        echo "set: usage: set [var_name] [value]" >&2
+        return 1
+    fi
+}
+
 is_builtin() {
     case "$1" in
-        cd|exit|help|history)
+        cd|exit|help|history|set)
             return 0
             ;;
         *)
             return 1
             ;;
-    esac        
+    esac
 }
 
 execute_builtin() {
@@ -78,7 +110,14 @@ execute_builtin() {
         history)
             builtin_history
             ;;
+        set)
+            builtin_set "$@"
+            ;;
     esac
+}
+
+parse_and_execute() {
+
 }
 
 main_loop() {
@@ -102,6 +141,8 @@ main_loop() {
 
         add_to_history "$input"
 
+        # TODO add parse and execute func
+
         # Parse input
         read -ra ARGS <<< "$input"
         local cmd="${ARGS[0]}"
@@ -117,4 +158,5 @@ main_loop() {
     done
 }
 
+init_shell
 main_loop
